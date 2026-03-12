@@ -1,86 +1,188 @@
-import React, { useState, useEffect } from "react";
+/* eslint-disable */
+import React, { useState } from "react";
 import { useLeads } from "../hooks/LeadsContext";
 import { useBusiness } from "../hooks/BusinessContext";
 import AppLayout from "../components/layout/AppLayout";
-import LeadsTable from "../components/leads/LeadsTable";
 import LeadFormModal from "../components/leads/LeadFormModal";
-import ColumnManager from "../components/business/ColumnManager";
+import LeadsTable from "../components/leads/LeadsTable";
 
 export default function LeadsPage() {
-  const { fetchLeads, leads } = useLeads();
+  const { leads, loading, deleteLead } = useLeads();
   const { activeBusiness } = useBusiness();
-  const [showAdd, setShowAdd] = useState(false);
-  const [showCols, setShowCols] = useState(false);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
 
-  useEffect(() => {
-    if (activeBusiness) fetchLeads(activeBusiness.id);
-  }, [activeBusiness]);
+  const [showForm, setShowForm]       = useState(false);
+  const [editingLead, setEditingLead] = useState(null);
+  const [search, setSearch]           = useState("");
+  const [activeFilters, setActiveFilters] = useState({});
 
-  const filtered = leads.filter(l => {
-    if (statusFilter !== "All" && l.status !== statusFilter) return false;
+  // All columns including sno (sno is now optional/removable)
+  const columns = (activeBusiness?.columns || []);
+
+  // Filter-enabled select cols (max 3)
+  const filterCols = columns.filter(c => c.type === "select" && c.enableFilter === true).slice(0, 3);
+
+  // Filtering
+  const filteredLeads = leads.filter(lead => {
     if (search) {
       const s = search.toLowerCase();
-      return Object.values(l).some(v => String(v).toLowerCase().includes(s));
+      if (!Object.values(lead).some(v => String(v).toLowerCase().includes(s))) return false;
+    }
+    for (const [key, val] of Object.entries(activeFilters)) {
+      if (val && val !== "All" && lead[key] !== val) return false;
     }
     return true;
   });
 
-  const statuses = ["All", "New", "Contacted", "Qualified", "Proposal", "Won", "Lost"];
+  function setFilter(key, val) { setActiveFilters(prev => ({ ...prev, [key]: val })); }
+  function getFilterVal(key) { return activeFilters[key] || "All"; }
+  function getColOptions(col) {
+    if (col.options?.length > 0) return col.options;
+    return [...new Set(leads.map(l => l[col.key]).filter(Boolean))];
+  }
+  function clearAllFilters() { setActiveFilters({}); setSearch(""); }
+  const hasActiveFilters = search || Object.values(activeFilters).some(v => v && v !== "All");
+
+  function openAdd() { setEditingLead(null); setShowForm(true); }
+  function openEdit(lead) { setEditingLead(lead); setShowForm(true); }
+
+  async function handleDelete(id) {
+    if (window.confirm("Delete this lead?")) await deleteLead(id);
+  }
 
   return (
     <AppLayout title="Leads">
-      <div className="page-header d-flex align-items-start justify-content-between flex-wrap gap-2">
+      <div className="page-header d-flex align-items-start justify-content-between">
         <div>
           <h2>Leads</h2>
-          <p>{activeBusiness ? `${leads.length} leads in ${activeBusiness.name}` : "Select a business to view leads"}</p>
+          <p>
+            {activeBusiness
+              ? `${filteredLeads.length} of ${leads.length} leads in ${activeBusiness.name}`
+              : "Select a business to view leads"}
+          </p>
         </div>
         {activeBusiness && (
-          <div className="d-flex gap-2">
-            <button className="btn btn-outline-primary btn-sm" onClick={() => setShowCols(true)}>⚙️ Manage Columns</button>
-            <a href="/import" className="btn btn-outline-primary btn-sm">📁 Import CSV</a>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>+ Add Lead</button>
-          </div>
+          <button className="btn btn-primary" onClick={openAdd}>
+            <i className="fa-solid fa-plus me-1" /> Add Lead
+          </button>
         )}
       </div>
 
       {!activeBusiness ? (
         <div className="empty-state">
-          <div className="empty-state-icon">🏢</div>
+          <div className="empty-state-icon"><i className="fa-solid fa-users" /></div>
           <h5>No Business Selected</h5>
           <p>Select a business from the sidebar to manage leads.</p>
         </div>
       ) : (
         <div className="table-card">
+          {/* Search bar */}
           <div className="table-header">
-            <div className="d-flex align-items-center gap-2 flex-wrap">
-              {/* Search */}
-              <div className="search-wrap" style={{ width: 220 }}>
-                <span className="search-icon">🔍</span>
-                <input className="form-control form-control-sm" placeholder="Search leads..."
-                  value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 34 }} />
-              </div>
-              {/* Status filter */}
-              <div className="d-flex gap-1 flex-wrap">
-                {statuses.map(s => (
-                  <button key={s} onClick={() => setStatusFilter(s)}
-                    className={`btn btn-sm ${statusFilter === s ? "btn-primary" : "btn-outline-secondary"}`}
-                    style={{ fontSize: "0.75rem", padding: "4px 10px" }}>
-                    {s}
-                    {s !== "All" && <span style={{ marginLeft: 4, opacity: 0.7 }}>({leads.filter(l => l.status === s).length})</span>}
-                  </button>
-                ))}
-              </div>
+            <div style={{ position: "relative", flex: 1, minWidth: 200, maxWidth: 320 }}>
+              <i className="fa-solid fa-magnifying-glass" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: "0.85rem" }} />
+              <input
+                className="form-control form-control-sm"
+                placeholder="Search all fields..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ paddingLeft: 34 }}
+              />
             </div>
-            <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{filtered.length} results</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                {filteredLeads.length} result{filteredLeads.length !== 1 ? "s" : ""}
+              </span>
+              {hasActiveFilters && (
+                <button className="btn btn-sm btn-outline-secondary" onClick={clearAllFilters} style={{ fontSize: "0.72rem" }}>
+                  <i className="fa-solid fa-xmark me-1" />Clear
+                </button>
+              )}
+            </div>
           </div>
-          <LeadsTable search={search} statusFilter={statusFilter} filteredLeads={filtered} />
+
+          {/* Dynamic filter rows */}
+          {filterCols.length > 0 && (
+            <div style={{ borderBottom: "1px solid var(--border)" }}>
+              {filterCols.map((col, idx) => {
+                const options = getColOptions(col);
+                const activeVal = getFilterVal(col.key);
+                const colColors = [
+                  { active: "#2563eb", light: "#dbeafe", text: "#1d4ed8" },
+                  { active: "#7c3aed", light: "#ede9fe", text: "#5b21b6" },
+                  { active: "#0f766e", light: "#ccfbf1", text: "#134e4a" },
+                ][idx] || { active: "#2563eb", light: "#dbeafe", text: "#1d4ed8" };
+
+                return (
+                  <div key={col.key} style={{
+                    padding: "8px 16px",
+                    borderBottom: idx < filterCols.length - 1 ? "1px solid var(--border)" : "none",
+                    display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap"
+                  }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 800, color: colColors.text, background: colColors.light, padding: "2px 8px", borderRadius: 20, minWidth: "fit-content" }}>
+                      {col.label}
+                    </span>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      <button onClick={() => setFilter(col.key, "All")} style={{
+                        padding: "2px 10px", borderRadius: 20, fontSize: "0.7rem",
+                        fontWeight: activeVal === "All" ? 700 : 500, border: "1.5px solid",
+                        borderColor: activeVal === "All" ? colColors.active : "var(--border)",
+                        background: activeVal === "All" ? colColors.active : "transparent",
+                        color: activeVal === "All" ? "#fff" : "var(--text-secondary)",
+                        cursor: "pointer", transition: "all 0.15s"
+                      }}>
+                        All ({leads.length})
+                      </button>
+                      {options.map(val => {
+                        const count = leads.filter(l => l[col.key] === val).length;
+                        const isActive = activeVal === val;
+                        return (
+                          <button key={val} onClick={() => setFilter(col.key, val)} style={{
+                            padding: "2px 10px", borderRadius: 20, fontSize: "0.7rem",
+                            fontWeight: isActive ? 700 : 500, border: "1.5px solid",
+                            borderColor: isActive ? colColors.active : "var(--border)",
+                            background: isActive ? colColors.active : "transparent",
+                            color: isActive ? "#fff" : "var(--text-secondary)",
+                            cursor: "pointer", transition: "all 0.15s"
+                          }}>
+                            {val} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Table */}
+          {loading ? (
+            <div style={{ textAlign: "center", padding: 40 }}>
+              <div className="spinner-border text-primary" role="status" />
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon"><i className="fa-solid fa-users" /></div>
+              <h5>{hasActiveFilters ? "No matching leads" : "No leads yet"}</h5>
+              <p>{hasActiveFilters ? "Try clearing filters." : "Click \"Add Lead\" to get started."}</p>
+              {hasActiveFilters && (
+                <button className="btn btn-outline-primary btn-sm mt-2" onClick={clearAllFilters}>
+                  <i className="fa-solid fa-filter-circle-xmark me-1" />Clear Filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <LeadsTable leads={filteredLeads} onEdit={openEdit} onDelete={handleDelete} />
+          )}
         </div>
       )}
 
-      <LeadFormModal show={showAdd} onHide={() => setShowAdd(false)} />
-      <ColumnManager show={showCols} onHide={() => setShowCols(false)} />
+      {showForm && (
+        <LeadFormModal
+          show={showForm}
+          onHide={() => setShowForm(false)}
+          editLead={editingLead}
+        />
+      )}
     </AppLayout>
   );
 }

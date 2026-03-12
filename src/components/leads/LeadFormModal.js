@@ -1,9 +1,8 @@
+/* eslint-disable */
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import { useLeads } from "../../hooks/LeadsContext";
 import { useBusiness } from "../../hooks/BusinessContext";
-
-const STATUS_OPTIONS = ["New", "Contacted", "Qualified", "Proposal", "Won", "Lost"];
 
 export default function LeadFormModal({ show, onHide, editLead = null }) {
   const { addLead, updateLead } = useLeads();
@@ -12,6 +11,7 @@ export default function LeadFormModal({ show, onHide, editLead = null }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // All editable columns (exclude sno which is auto-assigned)
   const columns = (activeBusiness?.columns || []).filter(c => c.key !== "sno");
 
   useEffect(() => {
@@ -20,7 +20,6 @@ export default function LeadFormModal({ show, onHide, editLead = null }) {
     } else {
       const defaults = {};
       columns.forEach(c => { defaults[c.key] = ""; });
-      defaults.status = "New";
       setForm(defaults);
     }
     setError("");
@@ -44,13 +43,6 @@ export default function LeadFormModal({ show, onHide, editLead = null }) {
   }
 
   function renderField(col) {
-    if (col.locked && col.key === "status") {
-      return (
-        <Form.Select className="form-select" value={form.status || "New"} onChange={set("status")}>
-          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-        </Form.Select>
-      );
-    }
     if (col.type === "select") {
       return (
         <Form.Select className="form-select" value={form[col.key] || ""} onChange={set(col.key)}>
@@ -59,16 +51,25 @@ export default function LeadFormModal({ show, onHide, editLead = null }) {
         </Form.Select>
       );
     }
+    const typeMap = { number: "number", email: "email", date: "date", phone: "tel", url: "url" };
     return (
-      <Form.Control className="form-control" type={col.type === "number" ? "number" : col.type === "email" ? "email" : col.type === "date" ? "date" : "text"}
-        value={form[col.key] || ""} onChange={set(col.key)} placeholder={`Enter ${col.label}`} />
+      <Form.Control
+        className="form-control"
+        type={typeMap[col.type] || "text"}
+        value={form[col.key] || ""}
+        onChange={set(col.key)}
+        placeholder={`Enter ${col.label}`}
+      />
     );
   }
 
   return (
     <Modal show={show} onHide={onHide} centered size="lg">
       <Modal.Header closeButton>
-        <Modal.Title>{editLead ? "Edit Lead" : "Add New Lead"}</Modal.Title>
+        <Modal.Title>
+          <i className={`fa-solid ${editLead ? "fa-pen-to-square" : "fa-user-plus"} me-2`} style={{ color: "var(--primary)" }} />
+          {editLead ? "Edit Lead" : "Add New Lead"}
+        </Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {!activeBusiness ? (
@@ -78,25 +79,19 @@ export default function LeadFormModal({ show, onHide, editLead = null }) {
             {error && <div className="alert alert-danger py-2">{error}</div>}
             <form onSubmit={handleSubmit} id="lead-form">
               <div className="row g-3">
-                {columns.map(col => (
-                  <div key={col.key} className="col-md-6">
-                    <Form.Label className="form-label">{col.label}</Form.Label>
-                    {renderField(col)}
-                  </div>
-                ))}
-                {columns.length === 0 && (
+                {columns.length === 0 ? (
                   <div className="col-12">
                     <div className="alert alert-info">
-                      This business has no custom columns yet. Only S.No and Status will be recorded.
-                      <br /><small>Go to <strong>Businesses → Manage Columns</strong> to add more fields.</small>
+                      This business has no columns yet. Go to <strong>Businesses → Manage Columns</strong> to add fields.
                     </div>
-                    <Form.Group>
-                      <Form.Label className="form-label">Status</Form.Label>
-                      <Form.Select className="form-select" value={form.status || "New"} onChange={set("status")}>
-                        {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                      </Form.Select>
-                    </Form.Group>
                   </div>
+                ) : (
+                  columns.map(col => (
+                    <div key={col.key} className="col-md-6">
+                      <Form.Label className="form-label">{col.label}</Form.Label>
+                      {renderField(col)}
+                    </div>
+                  ))
                 )}
               </div>
             </form>

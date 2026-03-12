@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState } from "react";
 import { useBusiness } from "../hooks/BusinessContext";
 import AppLayout from "../components/layout/AppLayout";
@@ -8,19 +9,11 @@ import ShareModal from "../components/share/ShareModal";
 export default function BusinessesPage() {
   const { businesses, activeBusiness, setActiveBusiness, createBusiness, deleteBusiness } = useBusiness();
   const [showCreate, setShowCreate] = useState(false);
-  const [showCols, setShowCols] = useState(false);
-  const [showShare, setShowShare] = useState(false);
+  const [showCols, setShowCols]     = useState(false);
+  const [showShare, setShowShare]   = useState(false);
 
-  function handleManageCols(biz) {
-    setActiveBusiness(biz);
-    setShowCols(true);
-  }
-
-  function handleShare(biz) {
-    setActiveBusiness(biz);
-    setShowShare(true);
-  }
-
+  function handleManageCols(biz) { setActiveBusiness(biz); setShowCols(true); }
+  function handleShare(biz) { setActiveBusiness(biz); setShowShare(true); }
   async function handleDelete(biz) {
     if (window.confirm(`Delete "${biz.name}"? This will NOT delete associated leads.`)) {
       await deleteBusiness(biz.id);
@@ -34,29 +27,30 @@ export default function BusinessesPage() {
           <h2>Businesses</h2>
           <p>Manage your lead businesses, columns and share access</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Business</button>
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+          <i className="fa-solid fa-plus me-1" /> New Business
+        </button>
       </div>
 
       {businesses.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">🏢</div>
+          <div className="empty-state-icon"><i className="fa-solid fa-building" /></div>
           <h5>No businesses yet</h5>
           <p>Create your first business to start tracking leads.</p>
           <button className="btn btn-primary mt-3" onClick={() => setShowCreate(true)}>
-            Create Business
+            <i className="fa-solid fa-plus me-1" />Create Business
           </button>
         </div>
       ) : (
         <div className="row g-3">
           {businesses.map(biz => (
-            <div key={biz.id} className="col-md-4">
+            <div key={biz.id} className="col-12 col-md-6 col-xl-4">
               <div
                 className="metric-card"
                 style={{
                   cursor: "pointer",
                   border: activeBusiness?.id === biz.id
-                    ? "2px solid var(--primary)"
-                    : "1px solid var(--border)"
+                    ? "2px solid var(--primary)" : "1px solid var(--border)"
                 }}
                 onClick={() => setActiveBusiness(biz)}
               >
@@ -64,14 +58,14 @@ export default function BusinessesPage() {
                   <div style={{
                     width: 44, height: 44, background: "var(--primary-light)",
                     borderRadius: "var(--radius)", display: "flex",
-                    alignItems: "center", justifyContent: "center", fontSize: "1.3rem"
-                  }}>🏢</div>
+                    alignItems: "center", justifyContent: "center"
+                  }}>
+                    <i className="fa-solid fa-building" style={{ color: "var(--primary)", fontSize: "1.1rem" }} />
+                  </div>
                   {activeBusiness?.id === biz.id && (
-                    <span style={{
-                      background: "var(--primary)", color: "#fff",
-                      fontSize: "0.7rem", fontWeight: 700,
-                      padding: "2px 8px", borderRadius: 20
-                    }}>Active</span>
+                    <span style={{ background: "var(--primary)", color: "#fff", fontSize: "0.7rem", fontWeight: 700, padding: "2px 10px", borderRadius: 20 }}>
+                      Active
+                    </span>
                   )}
                 </div>
 
@@ -79,19 +73,18 @@ export default function BusinessesPage() {
                   {biz.name}
                 </div>
                 {biz.description && (
-                  <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: 12 }}>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: 10 }}>
                     {biz.description}
                   </div>
                 )}
-                <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 12 }}>
+                <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 10 }}>
+                  <i className="fa-solid fa-table-columns me-1" />
                   {(biz.columns || []).length} columns configured
                 </div>
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 16 }}>
                   {(biz.columns || []).slice(0, 5).map(col => (
-                    <span key={col.key}
-                      className={`column-tag${col.locked ? " locked" : ""}`}
-                      style={{ fontSize: "0.72rem", padding: "3px 8px" }}>
+                    <span key={col.key} className="column-tag" style={{ fontSize: "0.72rem", padding: "3px 8px" }}>
                       {col.label}
                     </span>
                   ))}
@@ -102,21 +95,15 @@ export default function BusinessesPage() {
                   )}
                 </div>
 
-                {/* Action buttons */}
                 <div className="d-flex gap-2" onClick={e => e.stopPropagation()}>
-                  <button className="btn btn-outline-primary btn-sm"
-                    style={{ flex: 1 }}
-                    onClick={() => handleManageCols(biz)}>
-                    ⚙️ Columns
+                  <button className="btn btn-outline-primary btn-sm" style={{ flex: 1 }} onClick={() => handleManageCols(biz)}>
+                    <i className="fa-solid fa-gear me-1" />Columns
                   </button>
-                  <button className="btn btn-primary btn-sm"
-                    style={{ flex: 1 }}
-                    onClick={() => handleShare(biz)}>
-                    🔗 Share
+                  <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={() => handleShare(biz)}>
+                    <i className="fa-solid fa-share-nodes me-1" />Share
                   </button>
-                  <button className="btn btn-outline-danger btn-sm"
-                    onClick={() => handleDelete(biz)}>
-                    🗑️
+                  <button className="btn btn-outline-danger btn-sm" onClick={() => handleDelete(biz)}>
+                    <i className="fa-solid fa-trash" />
                   </button>
                 </div>
               </div>

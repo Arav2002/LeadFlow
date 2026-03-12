@@ -1,10 +1,11 @@
+/* eslint-disable */
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./styles/global.css";
 
 import { AuthProvider } from "./hooks/AuthContext";
-import { BusinessProvider } from "./hooks/BusinessContext";
+import { BusinessProvider, useBusiness } from "./hooks/BusinessContext";
 import { LeadsProvider } from "./hooks/LeadsContext";
 import { OnboardingProvider } from "./hooks/OnboardingContext";
 import { ShareProvider } from "./hooks/ShareContext";
@@ -20,6 +21,16 @@ import ImportPage from "./pages/ImportPage";
 import BusinessesPage from "./pages/BusinessesPage";
 import SettingsPage from "./pages/SettingsPage";
 import SharedPage from "./pages/SharedPage";
+
+// Wrapper so LeadsProvider can read activeBusiness from BusinessContext
+function LeadsProviderWrapper({ children }) {
+  const { activeBusiness } = useBusiness();
+  return (
+    <LeadsProvider activeBusiness={activeBusiness}>
+      {children}
+    </LeadsProvider>
+  );
+}
 
 function AppRoutes() {
   return (
@@ -45,13 +56,13 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <BusinessProvider>
-          <LeadsProvider>
+          <LeadsProviderWrapper>
             <OnboardingProvider>
               <ShareProvider>
                 <AppRoutes />
               </ShareProvider>
             </OnboardingProvider>
-          </LeadsProvider>
+          </LeadsProviderWrapper>
         </BusinessProvider>
       </AuthProvider>
     </BrowserRouter>

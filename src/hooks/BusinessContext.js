@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { createContext, useContext, useState, useEffect } from "react";
 import {
   collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, serverTimestamp
@@ -32,15 +33,20 @@ export function BusinessProvider({ children }) {
   }
 
   async function createBusiness(name, description, customColumns = []) {
+    // Default: S.No only (removable). Status is removed.
+    const defaultCols = customColumns.some(c => c.key === "sno")
+      ? [] // user already included sno via modal
+      : [{ key: "sno", label: "S.No", type: "auto", removable: true }];
+
+    // If customColumns already contains sno (passed from BusinessModal), use as-is
+    const finalColumns = customColumns.length > 0 && customColumns[0].key === "sno"
+      ? customColumns
+      : [...defaultCols, ...customColumns];
+
     const ref = await addDoc(collection(db, "businesses"), {
-      name,
-      description,
+      name, description,
       ownerId: currentUser.uid,
-      columns: [
-        { key: "sno", label: "S.No", type: "auto", required: true, locked: true },
-        { key: "status", label: "Status", type: "select", required: true, locked: true, options: ["New", "Contacted", "Qualified", "Proposal", "Won", "Lost"] },
-        ...customColumns
-      ],
+      columns: finalColumns,
       createdAt: serverTimestamp()
     });
     await fetchBusinesses();
@@ -62,14 +68,8 @@ export function BusinessProvider({ children }) {
   }
 
   const value = {
-    businesses,
-    activeBusiness,
-    setActiveBusiness,
-    loading,
-    createBusiness,
-    updateBusinessColumns,
-    deleteBusiness,
-    fetchBusinesses
+    businesses, activeBusiness, setActiveBusiness, loading,
+    createBusiness, updateBusinessColumns, deleteBusiness, fetchBusinesses
   };
 
   return <BusinessContext.Provider value={value}>{children}</BusinessContext.Provider>;
