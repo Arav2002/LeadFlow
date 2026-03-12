@@ -4,6 +4,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/AuthContext";
 import { useBusiness } from "../../hooks/BusinessContext";
 import { useOnboarding } from "../../hooks/OnboardingContext";
+import { useShare, PERMISSIONS } from "../../hooks/ShareContext";
 import BusinessModal from "../business/BusinessModal";
 
 const NAV = [
@@ -14,19 +15,20 @@ const NAV = [
   { path: "/settings",   icon: "fa-solid fa-gear",            label: "Settings",   stepId: null              },
 ];
 
+const permColors = { R: "#dbeafe", CRU: "#fef3c7", CRUD: "#fee2e2" };
+const permText   = { R: "#1d4ed8", CRU: "#92400e", CRUD: "#991b1b" };
+
 export default function Sidebar({ open, onClose }) {
   const { currentUser, logout } = useAuth();
   const { businesses, activeBusiness, setActiveBusiness, createBusiness } = useBusiness();
   const { completeStep, isDismissed, activeStep, isStepComplete, onboarding, steps } = useOnboarding();
+  const { sharedWithMe } = useShare();
   const navigate = useNavigate();
   const location = useLocation();
   const [showBizDropdown, setShowBizDropdown] = useState(false);
-  const [showCreateBiz, setShowCreateBiz] = useState(false);
+  const [showCreateBiz, setShowCreateBiz]     = useState(false);
 
-  async function handleLogout() {
-    await logout();
-    navigate("/login");
-  }
+  async function handleLogout() { await logout(); navigate("/login"); }
 
   const initials = currentUser?.displayName
     ? currentUser.displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
@@ -41,21 +43,10 @@ export default function Sidebar({ open, onClose }) {
     return (
       <div style={{ position: "relative", width: "100%" }}>
         {isActiveStep && (
-          <div style={{
-            position: "absolute", inset: "2px 4px", borderRadius: 8,
-            border: "2px solid rgba(96,165,250,0.8)",
-            animation: "pulseRing 1.5s ease-in-out infinite",
-            pointerEvents: "none", zIndex: 5
-          }} />
+          <div style={{ position: "absolute", inset: "2px 4px", borderRadius: 8, border: "2px solid rgba(96,165,250,0.8)", animation: "pulseRing 1.5s ease-in-out infinite", pointerEvents: "none", zIndex: 5 }} />
         )}
-        <Link
-          to={item.path}
-          className={`sidebar-nav-item${isActive ? " active" : ""}`}
-          onClick={() => {
-            if (item.stepId && !isDismissed) completeStep(item.stepId);
-            if (onClose) onClose();
-          }}
-        >
+        <Link to={item.path} className={`sidebar-nav-item${isActive ? " active" : ""}`}
+          onClick={() => { if (item.stepId && !isDismissed) completeStep(item.stepId); if (onClose) onClose(); }}>
           <i className={`${item.icon} nav-icon-fa`} />
           <span>{item.label}</span>
         </Link>
@@ -69,15 +60,19 @@ export default function Sidebar({ open, onClose }) {
         @keyframes pulseRing { 0%,100%{opacity:1} 50%{opacity:0.3} }
         .nav-icon-fa { width:20px;text-align:center;margin-right:10px;font-size:0.9rem;flex-shrink:0; }
         .biz-icon-fa { width:20px;text-align:center;margin-right:8px;font-size:0.9rem;flex-shrink:0;opacity:0.7; }
-        .sidebar-nav-item { display:flex!important;align-items:center;width:100%;text-decoration:none; }
+        .sidebar-nav-item { display:flex!important;align-items:center;width:100%;text-decoration:none!important; }
         .sidebar-close-btn { display:none;background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer;padding:4px 8px; }
+        .shared-biz-item { display:flex;align-items:center;gap:8px;padding:8px 16px 8px 20px;color:var(--sidebar-text);cursor:pointer;font-size:0.82rem;font-weight:500;transition:all 0.2s;text-decoration:none!important;border-left:3px solid transparent; }
+        .shared-biz-item:hover { background:var(--sidebar-hover);color:#fff; }
+        .shared-biz-item.active { background:rgba(245,158,11,0.15);color:#fff;border-left-color:#f59e0b; }
         @media(max-width:768px){ .sidebar-close-btn{display:flex;align-items:center;} }
       `}</style>
 
       <aside className={`sidebar${open ? " sidebar-open" : ""}`}>
-        <div className="sidebar-header" style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+        {/* Header */}
+        <div className="sidebar-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div className="sidebar-logo">
-            <i className="fa-solid fa-bolt" style={{ marginRight:6,fontSize:"1rem" }} />
+            <i className="fa-solid fa-bolt" style={{ marginRight: 6, fontSize: "1rem" }} />
             Lead<span>Flow</span>
           </div>
           <button className="sidebar-close-btn" onClick={onClose} aria-label="Close menu">
@@ -86,59 +81,95 @@ export default function Sidebar({ open, onClose }) {
         </div>
 
         {/* Business Selector */}
-        <div style={{ padding:"12px 12px 0" }}>
-          <div style={{ fontSize:"0.7rem",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:"var(--text-muted)",padding:"0 8px 6px" }}>
+        <div style={{ padding: "12px 12px 0" }}>
+          <div style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)", padding: "0 8px 6px" }}>
             Active Business
           </div>
           <div className="business-selector">
             <button className="business-select-btn" onClick={() => setShowBizDropdown(p => !p)}>
               <i className="fa-solid fa-building biz-icon-fa" />
-              <div style={{ flex:1,minWidth:0 }}>
-                <div style={{ color:"#fff",fontWeight:600,fontSize:"0.82rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: "#fff", fontWeight: 600, fontSize: "0.82rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {activeBusiness?.name || "Select Business"}
                 </div>
-                <div style={{ fontSize:"0.7rem",color:"var(--text-muted)" }}>Click to switch</div>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Click to switch</div>
               </div>
-              <i className="fa-solid fa-chevron-down" style={{ color:"var(--text-muted)",fontSize:"0.65rem" }} />
+              <i className="fa-solid fa-chevron-down" style={{ color: "var(--text-muted)", fontSize: "0.65rem" }} />
             </button>
           </div>
 
           {showBizDropdown && (
-            <div style={{ background:"var(--sidebar-hover)",borderRadius:"var(--radius)",marginTop:4,overflow:"hidden" }}>
+            <div style={{ background: "var(--sidebar-hover)", borderRadius: "var(--radius)", marginTop: 4, overflow: "hidden" }}>
               {businesses.map(b => (
-                <button key={b.id}
-                  onClick={() => { setActiveBusiness(b); setShowBizDropdown(false); }}
-                  style={{
-                    width:"100%",display:"flex",alignItems:"center",gap:8,padding:"10px 14px",
-                    background: activeBusiness?.id===b.id ? "rgba(37,99,235,0.2)" : "transparent",
-                    border:"none", color: activeBusiness?.id===b.id ? "#fff" : "var(--sidebar-text)",
-                    cursor:"pointer",fontSize:"0.83rem",fontWeight:500,textAlign:"left"
-                  }}>
-                  <i className="fa-solid fa-building" style={{ opacity:0.6,fontSize:"0.78rem" }} />
+                <button key={b.id} onClick={() => { setActiveBusiness(b); setShowBizDropdown(false); }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: activeBusiness?.id === b.id ? "rgba(37,99,235,0.2)" : "transparent", border: "none", color: activeBusiness?.id === b.id ? "#fff" : "var(--sidebar-text)", cursor: "pointer", fontSize: "0.83rem", fontWeight: 500, textAlign: "left" }}>
+                  <i className="fa-solid fa-building" style={{ opacity: 0.6, fontSize: "0.78rem" }} />
                   {b.name}
                 </button>
               ))}
-              <button
-                onClick={() => { setShowCreateBiz(true); setShowBizDropdown(false); }}
-                style={{
-                  width:"100%",display:"flex",alignItems:"center",gap:8,padding:"10px 14px",
-                  background:"transparent",border:"none",borderTop:"1px solid rgba(255,255,255,0.06)",
-                  color:"var(--primary)",cursor:"pointer",fontSize:"0.83rem",fontWeight:600
-                }}>
-                <i className="fa-solid fa-plus" style={{ fontSize:"0.78rem" }} />
-                New Business
+              <button onClick={() => { setShowCreateBiz(true); setShowBizDropdown(false); }}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "transparent", border: "none", borderTop: "1px solid rgba(255,255,255,0.06)", color: "var(--primary)", cursor: "pointer", fontSize: "0.83rem", fontWeight: 600 }}>
+                <i className="fa-solid fa-plus" style={{ fontSize: "0.78rem" }} />New Business
               </button>
             </div>
           )}
         </div>
 
-        {/* Nav */}
-        <div className="sidebar-section" style={{ flex:1 }}>
+        {/* Main Nav */}
+        <div className="sidebar-section" style={{ flex: "none" }}>
           <div className="sidebar-section-label">Navigation</div>
-          <div style={{ display:"flex",flexDirection:"column",width:"100%" }}>
+          <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
             {NAV.map(item => <NavItem key={item.path} item={item} />)}
           </div>
         </div>
+
+        {/* ── Shared With Me ── */}
+        {sharedWithMe.length > 0 && (
+          <div className="sidebar-section" style={{ flex: "none" }}>
+            <div className="sidebar-section-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <i className="fa-solid fa-share-nodes" style={{ fontSize: "0.65rem" }} />
+              Shared With Me
+              <span style={{ background: "rgba(245,158,11,0.2)", color: "#f59e0b", fontSize: "0.62rem", fontWeight: 800, padding: "1px 6px", borderRadius: 10 }}>
+                {sharedWithMe.length}
+              </span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+              {sharedWithMe.map(link => {
+                const isActive = location.pathname === `/shared-business/${link.token}`;
+                return (
+                  <Link
+                    key={link.id}
+                    to={`/shared-business/${link.token}`}
+                    className={`shared-biz-item${isActive ? " active" : ""}`}
+                    onClick={() => { if (onClose) onClose(); }}
+                    title={`Shared by ${link.ownerName}`}
+                  >
+                    <i className="fa-solid fa-building" style={{ fontSize: "0.78rem", opacity: 0.7, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.82rem" }}>
+                        {link.businessName}
+                      </div>
+                      <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 1 }}>
+                        by {link.ownerName}
+                      </div>
+                    </div>
+                    <span style={{
+                      background: permColors[link.permission],
+                      color: permText[link.permission],
+                      fontSize: "0.6rem", fontWeight: 800,
+                      padding: "1px 6px", borderRadius: 10, flexShrink: 0
+                    }}>
+                      {link.permission}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
 
         {/* Footer */}
         <div className="sidebar-footer">
@@ -148,7 +179,7 @@ export default function Sidebar({ open, onClose }) {
               <div className="sidebar-user-name">{currentUser?.displayName || "User"}</div>
               <div className="sidebar-user-email">{currentUser?.email}</div>
             </div>
-            <button onClick={handleLogout} title="Logout" style={{ background:"none",border:"none",color:"var(--text-muted)",cursor:"pointer",fontSize:"1rem",padding:4 }}>
+            <button onClick={handleLogout} title="Logout" style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1rem", padding: 4 }}>
               <i className="fa-solid fa-right-from-bracket" />
             </button>
           </div>

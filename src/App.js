@@ -21,8 +21,8 @@ import ImportPage from "./pages/ImportPage";
 import BusinessesPage from "./pages/BusinessesPage";
 import SettingsPage from "./pages/SettingsPage";
 import SharedPage from "./pages/SharedPage";
+import SharedBusinessPage from "./pages/SharedBusinessPage";
 
-// Wrapper so LeadsProvider can read activeBusiness from BusinessContext
 function LeadsProviderWrapper({ children }) {
   const { activeBusiness } = useBusiness();
   return (
@@ -36,15 +36,23 @@ function AppRoutes() {
   return (
     <>
       <Routes>
-        <Route path="/login"         element={<Login />} />
-        <Route path="/signup"        element={<Signup />} />
+        {/* Public */}
+        <Route path="/login"  element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+
+        {/* Old shared page (token link, no auth required) */}
         <Route path="/shared/:token" element={<SharedPage />} />
-        <Route path="/dashboard"     element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/leads"         element={<PrivateRoute><LeadsPage /></PrivateRoute>} />
-        <Route path="/import"        element={<PrivateRoute><ImportPage /></PrivateRoute>} />
-        <Route path="/businesses"    element={<PrivateRoute><BusinessesPage /></PrivateRoute>} />
-        <Route path="/settings"      element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
-        <Route path="*"              element={<Navigate to="/dashboard" replace />} />
+
+        {/* New shared business page (inside app, requires auth) */}
+        <Route path="/shared-business/:token" element={<PrivateRoute><SharedBusinessPage /></PrivateRoute>} />
+
+        {/* Private app routes */}
+        <Route path="/dashboard"  element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/leads"      element={<PrivateRoute><LeadsPage /></PrivateRoute>} />
+        <Route path="/import"     element={<PrivateRoute><ImportPage /></PrivateRoute>} />
+        <Route path="/businesses" element={<PrivateRoute><BusinessesPage /></PrivateRoute>} />
+        <Route path="/settings"   element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+        <Route path="*"           element={<Navigate to="/dashboard" replace />} />
       </Routes>
       <OnboardingBanner />
     </>

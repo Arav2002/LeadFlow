@@ -1,41 +1,31 @@
+/* eslint-disable */
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import { useShare, PERMISSIONS } from "../../hooks/ShareContext";
 import { useBusiness } from "../../hooks/BusinessContext";
 
-// Safe copy that works on HTTP/custom IP (no HTTPS required)
 function safeCopyToClipboard(text) {
   try {
-    // Modern async clipboard API (works on localhost/HTTPS)
-    if (navigator.clipboard && window.isSecureContext) {
-      return navigator.clipboard.writeText(text);
-    }
-    // Fallback: create a temp textarea and use execCommand
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.style.position = "fixed";
-    textarea.style.left = "-9999px";
-    textarea.style.top = "-9999px";
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    document.execCommand("copy");
-    document.body.removeChild(textarea);
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.left = "-9999px";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand("copy"); document.body.removeChild(ta);
     return Promise.resolve();
-  } catch (e) {
-    return Promise.reject(e);
-  }
+  } catch (e) { return Promise.reject(e); }
 }
 
 export default function ShareModal({ show, onHide }) {
   const { activeBusiness } = useBusiness();
   const { shareLinks, loading, fetchShareLinks, createShareLink, revokeShareLink } = useShare();
-  const [permission, setPermission] = useState("R");
-  const [label, setLabel] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [copiedId, setCopiedId] = useState(null);
-  const [newToken, setNewToken] = useState(null);
-  const [error, setError] = useState("");
+  const [permission, setPermission]     = useState("R");
+  const [label, setLabel]               = useState("");
+  const [email, setEmail]               = useState("");
+  const [creating, setCreating]         = useState(false);
+  const [copiedId, setCopiedId]         = useState(null);
+  const [newToken, setNewToken]         = useState(null);
+  const [error, setError]               = useState("");
 
   useEffect(() => {
     if (show && activeBusiness) fetchShareLinks(activeBusiness.id);
@@ -43,34 +33,23 @@ export default function ShareModal({ show, onHide }) {
 
   async function handleCreate() {
     if (!activeBusiness) return;
-    setCreating(true);
-    setError("");
+    setCreating(true); setError("");
     try {
       const token = await createShareLink(
-        activeBusiness.id,
-        activeBusiness.name,
-        permission,
-        label
+        activeBusiness.id, activeBusiness.name,
+        permission, label, email
       );
-      setNewToken(token);
-      setLabel("");
+      setNewToken(token); setLabel(""); setEmail("");
     } catch (e) { setError(e.message); }
     setCreating(false);
   }
 
-  function getLink(token) {
-    return `${window.location.origin}/shared/${token}`;
-  }
+  function getLink(token) { return `${window.location.origin}/shared/${token}`; }
 
   function copyLink(token, id) {
     safeCopyToClipboard(getLink(token))
-      .then(() => {
-        setCopiedId(id);
-        setTimeout(() => setCopiedId(null), 2000);
-      })
-      .catch(() => {
-        alert("Copy failed. Please select and copy the link manually.");
-      });
+      .then(() => { setCopiedId(id); setTimeout(() => setCopiedId(null), 2000); })
+      .catch(() => alert("Copy failed. Please copy the link manually."));
   }
 
   async function handleRevoke(linkId) {
@@ -86,44 +65,35 @@ export default function ShareModal({ show, onHide }) {
   return (
     <Modal show={show} onHide={onHide} centered size="lg">
       <Modal.Header closeButton>
-        <Modal.Title>🔗 Share — {activeBusiness?.name}</Modal.Title>
+        <Modal.Title>
+          <i className="fa-solid fa-share-nodes me-2" style={{ color: "var(--primary)" }} />
+          Share — {activeBusiness?.name}
+        </Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {error && <div className="alert alert-danger py-2">{error}</div>}
 
-        {/* Newly created link highlight */}
+        {/* Newly created link */}
         {newToken && (
-          <div style={{
-            background: "#d1fae5", border: "1.5px solid #6ee7b7",
-            borderRadius: 10, padding: 16, marginBottom: 20
-          }}>
+          <div style={{ background: "#d1fae5", border: "1.5px solid #6ee7b7", borderRadius: 10, padding: 16, marginBottom: 20 }}>
             <div style={{ fontWeight: 700, color: "#065f46", marginBottom: 8, fontSize: "0.875rem" }}>
-              ✅ Share link created! Copy it below:
+              <i className="fa-solid fa-circle-check me-2" />Share link created! Copy it below:
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <input
-                readOnly
-                value={getLink(newToken)}
-                className="form-control form-control-sm"
+              <input readOnly value={getLink(newToken)} className="form-control form-control-sm"
                 style={{ fontFamily: "monospace", fontSize: "0.78rem" }}
-                onClick={e => e.target.select()}
-              />
-              <button
-                className="btn btn-sm btn-success"
-                onClick={() => copyLink(newToken, "new")}
-              >
-                {copiedId === "new" ? "✓ Copied!" : "Copy"}
+                onClick={e => e.target.select()} />
+              <button className="btn btn-sm btn-success" onClick={() => copyLink(newToken, "new")}>
+                {copiedId === "new" ? <><i className="fa-solid fa-check me-1" />Copied!</> : <><i className="fa-solid fa-copy me-1" />Copy</>}
               </button>
             </div>
           </div>
         )}
 
         {/* Create new link */}
-        <div style={{
-          background: "var(--surface-2)", borderRadius: 12,
-          padding: 20, border: "1px solid var(--border)", marginBottom: 24
-        }}>
+        <div style={{ background: "var(--surface-2)", borderRadius: 12, padding: 20, border: "1px solid var(--border)", marginBottom: 24 }}>
           <div style={{ fontFamily: "Syne", fontWeight: 700, marginBottom: 16 }}>
+            <i className="fa-solid fa-link me-2" style={{ color: "var(--primary)" }} />
             Create New Share Link
           </div>
 
@@ -139,51 +109,53 @@ export default function ShareModal({ show, onHide }) {
                   background: permission === key ? "var(--primary-light)" : "var(--surface)",
                   transition: "all 0.15s"
                 }}>
-                  <input
-                    type="radio" name="permission" value={key}
-                    checked={permission === key}
-                    onChange={() => setPermission(key)}
-                    style={{ marginTop: 2 }}
-                  />
+                  <input type="radio" name="permission" value={key}
+                    checked={permission === key} onChange={() => setPermission(key)} style={{ marginTop: 2 }} />
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{
-                        background: permColors[key], color: permText[key],
-                        fontSize: "0.7rem", fontWeight: 800,
-                        padding: "2px 8px", borderRadius: 20, letterSpacing: "0.05em"
-                      }}>{key}</span>
+                      <span style={{ background: permColors[key], color: permText[key], fontSize: "0.7rem", fontWeight: 800, padding: "2px 8px", borderRadius: 20 }}>{key}</span>
                       <span style={{ fontWeight: 700, fontSize: "0.875rem" }}>{perm.label}</span>
                     </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: 3 }}>
-                      {perm.desc}
-                    </div>
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: 3 }}>{perm.desc}</div>
                   </div>
                 </label>
               ))}
             </div>
           </div>
 
+          {/* Email (optional — for sidebar auto-discovery) */}
+          <Form.Group className="mb-3">
+            <Form.Label className="form-label">
+              <i className="fa-solid fa-envelope me-1" />
+              Share with Email <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
+            </Form.Label>
+            <Form.Control className="form-control" type="email" value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="user@example.com" />
+            <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: 4 }}>
+              <i className="fa-solid fa-circle-info me-1" />
+              If entered, this business will appear in that user's <strong>Shared With Me</strong> sidebar section automatically.
+            </div>
+          </Form.Group>
+
           <Form.Group className="mb-3">
             <Form.Label className="form-label">Link Label (optional)</Form.Label>
-            <Form.Control
-              className="form-control"
-              value={label}
+            <Form.Control className="form-control" value={label}
               onChange={e => setLabel(e.target.value)}
-              placeholder="e.g. Sales Team, Client View..."
-            />
+              placeholder="e.g. Sales Team, Client View..." />
           </Form.Group>
 
           <Button variant="primary" onClick={handleCreate} disabled={creating || !activeBusiness}>
-            {creating ? "Creating..." : "🔗 Generate Share Link"}
+            {creating ? "Creating..." : <><i className="fa-solid fa-link me-1" />Generate Share Link</>}
           </Button>
         </div>
 
-        {/* Existing links */}
+        {/* Active links */}
         <div>
           <div style={{ fontFamily: "Syne", fontWeight: 700, marginBottom: 12, fontSize: "0.95rem" }}>
-            Active Share Links{" "}
+            Active Share Links
             {shareLinks.length > 0 && (
-              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 400 }}>
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 400, marginLeft: 6 }}>
                 ({shareLinks.length})
               </span>
             )}
@@ -203,36 +175,28 @@ export default function ShareModal({ show, onHide }) {
                   borderRadius: 10, padding: "12px 16px",
                   display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap"
                 }}>
-                  <span style={{
-                    background: permColors[link.permission],
-                    color: permText[link.permission],
-                    fontSize: "0.7rem", fontWeight: 800,
-                    padding: "2px 8px", borderRadius: 20, flexShrink: 0
-                  }}>
+                  <span style={{ background: permColors[link.permission], color: permText[link.permission], fontSize: "0.7rem", fontWeight: 800, padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>
                     {link.permission}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{link.label}</div>
-                    <div style={{
-                      fontSize: "0.72rem", color: "var(--text-muted)",
-                      fontFamily: "monospace", overflow: "hidden",
-                      textOverflow: "ellipsis", whiteSpace: "nowrap"
-                    }}>
+                    {link.sharedWithEmail && (
+                      <div style={{ fontSize: "0.72rem", color: "var(--primary)", marginTop: 1 }}>
+                        <i className="fa-solid fa-user me-1" />{link.sharedWithEmail}
+                      </div>
+                    )}
+                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {getLink(link.token)}
                     </div>
                   </div>
                   <div className="d-flex gap-1">
-                    <button
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => copyLink(link.token, link.id)}
-                    >
-                      {copiedId === link.id ? "✓ Copied" : "📋 Copy"}
+                    <button className="btn btn-sm btn-outline-primary" onClick={() => copyLink(link.token, link.id)}>
+                      {copiedId === link.id
+                        ? <><i className="fa-solid fa-check me-1" />Copied</>
+                        : <><i className="fa-solid fa-copy me-1" />Copy</>}
                     </button>
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => handleRevoke(link.id)}
-                    >
-                      Revoke
+                    <button className="btn btn-sm btn-outline-danger" onClick={() => handleRevoke(link.id)}>
+                      <i className="fa-solid fa-ban me-1" />Revoke
                     </button>
                   </div>
                 </div>
