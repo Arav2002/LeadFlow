@@ -135,10 +135,8 @@ export default function Dashboard() {
                   </div>
                 );
               })}
-            </div>
-          )}
 
-          {/* Breakdown bars */}
+              {/* Breakdown bars */}
           {filterCols.map((col, idx) => {
             const palette = CHART_PALETTES[idx] || CHART_PALETTES[0];
             const counts = {};
@@ -146,7 +144,7 @@ export default function Dashboard() {
             const colTotal = Object.values(counts).reduce((a, b) => a + b, 0);
             if (colTotal === 0) return null;
             return (
-              <div key={col.key} className="table-card mb-3">
+              <div key={col.key} className="table-card col-md-6">
                 <div className="table-header">
                   <h5>
                     <i className="fa-solid fa-bars-progress me-2" style={{ color: palette[0] }} />
@@ -159,7 +157,7 @@ export default function Dashboard() {
                     const count = counts[val] || 0;
                     const pct = colTotal > 0 ? (count / colTotal) * 100 : 0;
                     return (
-                      <div key={val} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px" }}>
+                      <div key={val} style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px" }}>
                         <span style={{ width: 100, fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{val}</span>
                         <div style={{ flex: 1, background: "var(--surface-3)", borderRadius: 4, height: 8, overflow: "hidden" }}>
                           <div style={{ width: pct + "%", height: "100%", background: palette[i % palette.length], borderRadius: 4, transition: "width 0.6s ease" }} />
@@ -172,6 +170,8 @@ export default function Dashboard() {
               </div>
             );
           })}
+            </div>
+          )}
 
           {filterCols.length === 0 && total > 0 && (
             <div className="table-card p-4" style={{ textAlign: "center" }}>
